@@ -1,0 +1,140 @@
+PARSER_BEGIN(sintactico)
+public class sintactico
+{
+    public static void main(String[] args) throws ParseException
+    {
+        try
+        {
+            sintactico analizador = new sintactico(System.in);
+            System.out.println("-> Inicio de análisis sintáctico;");
+            analizador.Program(); // Comienza la validación sintáctica del programa
+            System.out.println("-> Fin de análisis sintáctico;");
+        } 
+        catch (ParseException e)
+        {
+            System.out.println("Error de análisis: " + e.getMessage());
+        }
+    }
+}
+PARSER_END(sintactico)
+
+// Espacios en blanco y saltos de línea
+SKIP : { " " | "\t" | "\r" | "\n" }
+
+// Palabras clave
+TOKEN : { < T_IF : "if" > }
+TOKEN : { < T_ELSE : "else" > }
+TOKEN : { < T_WHILE : "while" > }
+TOKEN : { < T_FOR : "for" > }
+TOKEN : { < T_FUNCTION : "function" > }
+TOKEN : { < T_RETURN : "return" > }
+TOKEN : { < T_ECHO : "echo" > }
+
+// Operadores
+TOKEN : { < T_AIG_SUMA : "+=" > }
+TOKEN : { < T_ASIGNACION : "=" > }
+TOKEN : { < T_SUMA : "+" > }
+TOKEN : { < T_RESTA : "-" > }
+TOKEN : { < T_MULTIPLICACION : "*" > }
+TOKEN : { < T_DIVISION : "/" > }
+TOKEN : { < T_IGUAL : "==" > }
+TOKEN : { < T_DIFERENTE : "!=" > }
+TOKEN : { < T_MAYOR_QUE : ">" > }
+TOKEN : { < T_MAYOR_O_IGUAL : ">=" > }
+TOKEN : { < T_MENOR_QUE : "<" > }
+TOKEN : { < T_MENOR_O_IGUAL : "<=" > }
+
+// Símbolos y delimitadores
+TOKEN : { < T_PUNTO_COMA : ";" > }
+TOKEN : { < T_PARIZQ : "(" > }
+TOKEN : { < T_PARDER : ")" > }
+TOKEN : { < T_LLAVE_IZQ : "{" > }
+TOKEN : { < T_LLAVE_DER : "}" > }
+
+// Variables, números y textos
+TOKEN : { < T_NUMERO : (["0"-"9"])+ > }
+TOKEN : { < T_VARIABLE : "$" (["a"-"z", "A"-"Z", "_"]) (["a"-"z", "A"-"Z", "0"-"9", "_"])* > }
+TOKEN : { < T_TEXTO : "\"" (~["\""])* "\"" > }
+
+// Comentarios
+TOKEN : { < T_COMENTARIO_LINEA : "//" (~["\n","\r"])* > }
+
+// Regla principal del programa
+void Program() : {}
+{
+    (Statement())* 
+}
+
+// Declaración genérica (puede ser una asignación, condicional, etc.)
+void Statement() : {}
+{
+    (Assignment() | Conditional() | EchoStatement() | ForLoop())
+}
+
+// Regla para asignaciones (ej: $x = 5 + 3;)
+void Assignment() : {}
+{
+    <T_VARIABLE> ( <T_ASIGNACION> | <T_AIG_SUMA> ) Expression() <T_PUNTO_COMA>
+    { System.out.println("Declaración de asignación reconocida."); }
+}
+
+// Expresiones (pueden ser operaciones aritméticas)
+void Expression() : {}
+{
+    Term() ( ( <T_SUMA> | <T_RESTA> | <T_MULTIPLICACION> | <T_DIVISION> ) Term() )*
+}
+
+// Términos ( num, var, cadenas, num negggativoss )
+void Term() : {}
+{
+    [<T_RESTA>] ( <T_NUMERO> | <T_VARIABLE> | <T_TEXTO> ) 
+}
+
+// Condicionales (ej: if (condicion) { ... } else { ... })
+void Conditional() : {}
+{
+    <T_IF> <T_PARIZQ> Condition() <T_PARDER> <T_LLAVE_IZQ> Program() <T_LLAVE_DER> 
+    [ <T_ELSE> <T_LLAVE_IZQ> Program() <T_LLAVE_DER> ]
+    { System.out.println("Estructura condicional reconocida."); }
+}
+
+// Condiciones simples (ej: $x > 5)
+void Condition() : {}
+{
+    Term() ( <T_IGUAL> | <T_DIFERENTE> | <T_MAYOR_QUE> | <T_MENOR_QUE> |  <T_MAYOR_O_IGUAL> | <T_MENOR_O_IGUAL>) Term()
+}
+
+// Declaración de impresión (ej: echo "Hola";)
+void EchoStatement() : {}
+{
+    <T_ECHO> Expression() <T_PUNTO_COMA>
+    { System.out.println("Declaración de echo reconocida."); }
+}
+
+//FORR
+// Regla para inicialización del for
+void ForInit() : {}
+{
+    AssignmentNoSemicolon()
+}
+
+// Regla para asignaciones sin punto y coma
+void AssignmentNoSemicolon() : {}
+{
+    <T_VARIABLE> ( <T_ASIGNACION> | <T_AIG_SUMA> ) Expression()
+    { System.out.println("Inicialización de for reconocida."); }
+}
+void ForLoop() : {}
+{
+    <T_FOR> <T_PARIZQ> 
+        [ForInit()] // Inicialización opcional
+        <T_PUNTO_COMA>
+        [Condition()] // Condición opcional
+        <T_PUNTO_COMA>
+        [AssignmentNoSemicolon()] // Actualización opcional
+    <T_PARDER> 
+    <T_LLAVE_IZQ> Program() <T_LLAVE_DER>
+    { System.out.println("Estructura de ciclo for reconocida."); }
+}
+
+
